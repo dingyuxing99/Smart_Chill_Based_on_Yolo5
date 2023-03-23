@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager2.widget.ViewPager2;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +22,8 @@ import com.airbnb.lottie.LottieAnimationView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class IntroductoryActivity extends AppCompatActivity {
     ImageView logo, appName,splashImg;
@@ -79,6 +82,17 @@ public class IntroductoryActivity extends AppCompatActivity {
         ViewPager2 pagers = findViewById(R.id.viewpager);
         pagers.setAdapter(adapter);
 
+        final Intent intent = new Intent(getApplicationContext(), SignupActivity.class); //你要转向的Activity
+        Timer timer = new Timer();
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                startActivity(intent); //执行
+            }
+        };
+        timer.schedule(task, 1000 * 10); //10秒后
+
+
     }
     public class ViewHolder extends RecyclerView.ViewHolder{
         public LinearLayout container;
@@ -89,62 +103,5 @@ public class IntroductoryActivity extends AppCompatActivity {
         }
     }
 
-//    private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter{
-//
-//        public ScreenSlidePagerAdapter(@NonNull FragmentManager fm) {
-//            super(fm,BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
-//        }
-//
-//        @NonNull
-//        @Override
-//        public Fragment getItem(int position) {
-//            switch (position){
-//                case 0:
-//                    OnBoardingFragment1 tab1 = new OnBoardingFragment1();
-//                    return tab1;
-//                case 1:
-//                    OnBoardingFragment2 tab2 = new OnBoardingFragment2();
-//                    return tab2;
-//                case 2:
-//                    OnBoardingFragment3 tab3 = new OnBoardingFragment3();
-//                    return tab3;
-//            }
-//            return null;
-//        }
-//
-//        @Override
-//        public int getCount() {
-//            return NUM_PAGES;
-//        }
-//    }
 
-//    private class ScreenSlidePagerAdapter extends FragmentStateAdapter{
-//
-//
-//    public ScreenSlidePagerAdapter(@NonNull FragmentActivity fragmentActivity) {
-//        super(fragmentActivity);
-//    }
-//
-//    @NonNull
-//    @Override
-//    public Fragment createFragment(int position) {
-//        switch (position){
-//            case 0:
-//                OnBoardingFragment1 tab1 = new OnBoardingFragment1();
-//                return tab1;
-//            case 1:
-//                OnBoardingFragment2 tab2 = new OnBoardingFragment2();
-//                return tab2;
-//            case 2:
-//                OnBoardingFragment2 tab3 = new OnBoardingFragment2();
-//                return tab3;
-//            }
-//            return null;
-//    }
-//
-//    @Override
-//    public int getItemCount() {
-//        return NUM_PAGES;
-//    }
-//}
 }
