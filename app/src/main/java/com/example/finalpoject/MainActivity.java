@@ -1,5 +1,14 @@
 package com.example.finalpoject;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.os.Bundle;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -17,11 +26,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import org.pytorch.IValue;
 import org.pytorch.LiteModuleLoader;
@@ -128,10 +132,10 @@ public class MainActivity extends AppCompatActivity implements Runnable {
                     @Override
                     public void onClick(DialogInterface dialog, int item) {
                         if (options[item].equals("Take Picture")) {
-                            Intent takePicture = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                            Intent takePicture = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
                             startActivityForResult(takePicture, 0);
                         } else if (options[item].equals("Choose from Photos")) {
-                            Intent pickPhoto = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+                            Intent pickPhoto = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
                             startActivityForResult(pickPhoto, 1);
                         } else if (options[item].equals("Cancel")) {
                             dialog.dismiss();
