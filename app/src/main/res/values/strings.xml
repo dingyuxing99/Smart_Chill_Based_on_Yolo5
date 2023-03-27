@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">FinalPoject</string>
+    <string name="image_view">Image View</string>
+    <string name="detect">Detect</string>
+    <string name="run_model">Running the model...</string>
+    <string name="restart">Restart</string>
+    <string name="select">Select</string>
+    <string name="live">Live</string>
+    <string name="pre">Previous</string>
 </resources>
