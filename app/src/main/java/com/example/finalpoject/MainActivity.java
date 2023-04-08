@@ -1,14 +1,5 @@
 package com.example.finalpoject;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.os.Bundle;
-
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -26,7 +17,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.pytorch.IValue;
 import org.pytorch.LiteModuleLoader;
 import org.pytorch.Module;
@@ -41,7 +40,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okio.Okio;
 
 public class MainActivity extends AppCompatActivity implements Runnable {
     private int mImageIndex = 0;
@@ -239,6 +246,11 @@ public class MainActivity extends AppCompatActivity implements Runnable {
         final Tensor outputTensor = outputTuple[0].toTensor();
         final float[] outputs = outputTensor.getDataAsFloatArray();
         final ArrayList<Result> results = PrePostProcessor.outputsToNMSPredictions(outputs, mImgScaleX, mImgScaleY, mIvScaleX, mIvScaleY, mStartX, mStartY);
+        String recipe_generated = generate_recipe(results);
+        System.out.println(recipe_generated);
+        String recipe_suggestion = generate_suggestion(results);
+        System.out.println(recipe_suggestion);
+
 
         runOnUiThread(() -> {
             mButtonDetect.setEnabled(true);
@@ -248,5 +260,157 @@ public class MainActivity extends AppCompatActivity implements Runnable {
             mResultView.invalidate();
             mResultView.setVisibility(View.VISIBLE);
         });
+    }
+
+    public String generate_recipe(ArrayList<Result> results) {
+        OkHttpClient client = new OkHttpClient();
+        ArrayList<String> ingredients_list = new ArrayList<>();
+        for (Result result : results) {
+            System.out.println(PrePostProcessor.mClasses[result.classIndex]);
+            ingredients_list.add(PrePostProcessor.mClasses[result.classIndex]);
+        }
+        if (ingredients_list.size() == 0) {
+            return null;
+        }
+        Collections.shuffle(ingredients_list);
+        String url = "https://api.openai.com/v1/completions";
+        int maxTokens = 200;
+        String model = "text-davinci-003";
+        String ingredients = "";
+        // if too many ingredients are detected, random choose four to cook;
+        if (ingredients_list.size() > 4) {
+            List<String> ingredients_list_ = ingredients_list.subList(0, 4);
+            ingredients = String.join("\n", ingredients_list_);
+        } else {
+            ingredients = String.join("\n", ingredients_list);
+        }
+        String prompt = String.format("Write a recipe based on these ingredients:\n\nIngredients: \n%s\n \nInstructions:", ingredients);
+        double temperature = 0.3;
+        double top_p = 1.0;
+        double frequency_penalty = 0.0;
+        double presence_penalty = 0.0;
+        MediaType mediaType = MediaType.parse("application/json");
+        JSONObject json = new JSONObject();
+        try {
+            json.put("model", model);
+            json.put("prompt", prompt);
+            json.put("temperature", temperature);
+            json.put("max_tokens", maxTokens);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
+        String requestBody = json.toString();
+
+        String apiKey = getString(R.string.openai_api_key);
+        RequestBody body = RequestBody.create(requestBody, MediaType.parse("application/json"));
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "Bearer " + apiKey)
+                .post(body)
+                .build();
+
+        Response response = null;
+        String responseString = null;
+        try {
+            response = client.newCall(request).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            responseString = Okio.buffer(Okio.source(response.body().byteStream())).readUtf8();
+        } catch (IOException e) {
+            Toast.makeText(this, "Sorry, Time Out, Please Check Your Network", Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
+
+        System.out.println(responseString);
+        JSONObject jsonResponse = null;
+        try {
+            assert responseString != null;
+            jsonResponse = new JSONObject(responseString);
+            String completedText = jsonResponse.getJSONArray("choices").getJSONObject(0).getString("text");
+            System.out.println(completedText);
+            return (completedText);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        String finalResponseString = responseString;
+        Toast.makeText(this, finalResponseString, Toast.LENGTH_LONG).show();
+        return url;
+    }
+
+    public String generate_suggestion(ArrayList<Result> results) {
+        OkHttpClient client = new OkHttpClient();
+        ArrayList<String> ingredients_list = new ArrayList<>();
+        for (Result result : results) {
+            ingredients_list.add(PrePostProcessor.mClasses[result.classIndex]);
+        }
+        if (ingredients_list.size() == 0) {
+            Toast.makeText(this, "Try to detect again!", Toast.LENGTH_LONG).show();
+            return null;
+        }
+        String url = "https://api.openai.com/v1/completions";
+        int maxTokens = 200;
+        String model = "text-davinci-003";
+        String ingredients = "";
+        ingredients = String.join("\n", ingredients_list);
+        String prompt = String.format("Write a brief conclusion of nutrition analysis and make some suggestions on following ingredients based on Healthy Eating Food Pyramid" +
+                ":\n\nIngredients: \n%s", ingredients);
+        double temperature = 0.3;
+        double top_p = 1.0;
+        double frequency_penalty = 0.0;
+        double presence_penalty = 0.0;
+        MediaType mediaType = MediaType.parse("application/json");
+        JSONObject json = new JSONObject();
+        try {
+            json.put("model", model);
+            json.put("prompt", prompt);
+            json.put("temperature", temperature);
+            json.put("max_tokens", maxTokens);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
+        String requestBody = json.toString();
+
+        String apiKey = getString(R.string.openai_api_key);
+        RequestBody body = RequestBody.create(requestBody, MediaType.parse("application/json"));
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "Bearer " + apiKey)
+                .post(body)
+                .build();
+
+        Response response = null;
+        String responseString = null;
+        try {
+            response = client.newCall(request).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            responseString = Okio.buffer(Okio.source(response.body().byteStream())).readUtf8();
+        } catch (IOException e) {
+            Toast.makeText(this, "Sorry, Time Out, Please Check Your Network", Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
+
+        System.out.println(responseString);
+        JSONObject jsonResponse = null;
+        try {
+            assert responseString != null;
+            jsonResponse = new JSONObject(responseString);
+            String completedText = jsonResponse.getJSONArray("choices").getJSONObject(0).getString("text");
+            System.out.println(completedText);
+            return (completedText);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        String finalResponseString = responseString;
+        Toast.makeText(this, finalResponseString, Toast.LENGTH_LONG).show();
+        return url;
     }
 }
